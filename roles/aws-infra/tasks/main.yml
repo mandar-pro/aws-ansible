@@ -1,0 +1,86 @@
+- name: Setup AWS CLI
+  shell: >
+    aws configure set aws_access_key_id "{{ aws_access_key }}" --profile {{ aws_profile }};
+    aws configure set aws_secret_access_key "{{ aws_secret_key }}" --profile {{ aws_profile }};
+    aws configure set region {{ aws_region }} --profile {{ aws_profile }}
+  tags:
+    - always
+
+- name: find amazon linux 2 ami list
+  amazon.aws.ec2_ami_info:
+    profile: "{{ aws_profile }}"
+    filters:
+      name: "amzn2-ami-hvm-2.0*-x86_64-gp2"
+  register: ami_list
+  when: not ami_id|default(None)
+
+- name: select latest image
+  set_fact:
+    ami_id: "{{ ami_list.images | sort(attribute='creation_date') | json_query('[0].image_id') }}"
+  when: not ami_id|default(None)
+
+- name: create a new ec2 key pair
+  amazon.aws.ec2_key:
+    name: "{{ env }}-{{ product }}-{{ aws_region }}"
+    profile: "{{ aws_profile }}"
+  register: keypair_details
+
+- name: create keypairs directory
+  file:
+    path: ./roles/aws-infra/files/keypairs
+    state: directory
+  when: keypair_details.changed
+
+- name: save private key
+  ansible.builtin.copy:
+    dest: ./roles/aws-infra/files/keypairs/{{ keypair_details.key.name }}.pem
+    content: |
+      {{ keypair_details.key.private_key }}
+    mode: 0400
+  when: keypair_details.changed
+
+- name: ensure rendered_templates directory is present
+  file:
+    path: ./roles/aws-infra/files/rendered_templates
+    state: directory
+
+- name: render aws-infra.yml template
+  template:
+    src: aws-infra.yml.j2
+    dest: ./roles/aws-infra/files/rendered_templates/aws-infra.yml
+
+- name: launch aws-infra cloudformation stack
+  amazon.aws.cloudformation:
+    stack_name: "{{ Env }}-AWS-Infra"
+    changeset_name: "{{ Env }}-AWS-Infra-{{ ansible_date_time.date }}-{{ ansible_date_time.hour }}-{{ ansible_date_time.minute }}"
+    create_changeset: "{{ changeset }}"
+    state: "present"
+    aws_profile: "{{ aws_profile }}"
+    disable_rollback: true
+    template: "./roles/aws-infra/files/rendered_templates/aws-infra.yml"
+
+- name: delete aws-infra cloudformation stack
+  amazon.aws.cloudformation:
+    stack_name: "{{ Env }}-AWS-Infra"
+    state: "absent"
+    aws_profile: "{{ aws_profile }}"
+  tags:
+    - never
+    - delete
+
+- name: delete ec2 key pair in aws
+  amazon.aws.ec2_key:
+    name: "{{ env }}-{{ product }}-{{ aws_region }}"
+    profile: "{{ aws_profile }}"
+    state: absent
+  tags:
+    - never
+    - delete
+
+- name: delete ec2 key pair from local
+  file:
+    path: ./roles/aws-infra/files/keypairs/{{ env }}-{{ product }}-{{ aws_region }}.pem
+    state: absent
+  tags:
+    - never
+    - delete

@@ -1,0 +1,126 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Setup AWS Infra
+
+Resources:
+
+### VPC
+  {{ Env }}{{ Product }}VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: {{ vpc_iprange }}
+      EnableDnsSupport: 'True'
+      EnableDnsHostnames: 'True'
+      InstanceTenancy: default
+      Tags:
+      - Key: Name
+        Value: {{ env }}-{{ product }}-vpc
+      - Key: Environment
+        Value: {{ env }}
+      - Key: Product
+        Value: {{ product }}
+
+### Internet Gateway
+  {{ Env }}{{ Product }}IGW:
+    Type: "AWS::EC2::InternetGateway"
+    Properties:
+      Tags:
+      - Key: Name
+        Value: {{ env }}-{{ product }}-igw
+      - Key: Environment
+        Value: {{ env }}
+      - Key: Product
+        Value: {{ product }}
+
+  Attach{{ Env }}{{ Product }}IGWTo{{ Env }}{{ Product }}VPC:
+    Type: "AWS::EC2::VPCGatewayAttachment"
+    Properties:
+      InternetGatewayId: !Ref {{ Env }}{{ Product }}IGW
+      VpcId: !Ref {{ Env }}{{ Product }}VPC
+
+### Route Table
+  {{ Env }}{{ Product }}PublicRTB:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref {{ Env }}{{ Product }}VPC
+      Tags:
+      - Key: Name
+        Value: {{ env }}-{{ product }}-public-rtb
+      - Key: Environment
+        Value: {{ env }}
+      - Key: Product
+        Value: {{ product }}
+
+  RouteTo{{ Env }}{{ Product }}IGW:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref {{ Env }}{{ Product }}PublicRTB
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref {{ Env }}{{ Product }}IGW
+
+### Subnet
+  {{ Env }}{{ Product }}PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref {{ Env }}{{ Product }}VPC
+      CidrBlock: {{ subnet.iprange }}
+      AvailabilityZone: {{ aws_region}}{{ subnet.availability_zone }}
+      Tags:
+      - Key: Name
+        Value: {{ env }}-{{ product }}-zone{{ aws_region.split("-")[2] }}{{ subnet.availability_zone }}-subnet
+      - Key: Environment
+        Value: {{ env }}
+      - Key: Product
+        Value: {{ product }}
+
+  {{ Env }}{{ Product }}PublicSubnetAssociationWith{{ Env }}{{ Product }}PublicRTB:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref {{ Env }}{{ Product }}PublicRTB
+      SubnetId: !Ref {{ Env }}{{ Product }}PublicSubnet
+
+### Security Group
+  {{ Env }}{{ Product }}EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Control access to ec2 instance"
+      VpcId: !Ref {{ Env }}{{ Product }}VPC
+      SecurityGroupIngress:
+{% for cidr in ip_whitelists_range %}
+      - IpProtocol: tcp
+        FromPort: '22'
+        ToPort: '22'
+        CidrIp: {{ cidr }}
+        Description: "SSH access to ec2 instance"
+{% endfor %}
+      Tags:
+      - Key: Name
+        Value: {{ env }}-{{ product }}-ec2-sg
+      - Key: Environment
+        Value: {{ env }}
+      - Key: Product
+        Value: {{ product }}
+
+### EC2 instance
+  {{ Env }}{{ Product }}EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: {{ ami_id }}
+      InstanceType: {{ instance_type }}
+      KeyName: {{ env }}-{{ product }}-{{ aws_region }}
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: True
+          DeleteOnTermination: True
+          Description: "Interface for assigning public ip"
+          DeviceIndex: 0
+          GroupSet: 
+            - !Ref {{ Env }}{{ Product }}EC2SecurityGroup
+          SubnetId: !Ref {{ Env }}{{ Product }}PublicSubnet
+      Tags: 
+      - Key: Name
+        Value: {{ env }}-{{ product }}-ec2
+      - Key: Environment
+        Value: {{ env }}
+      - Key: Product
+        Value: {{ product }}
+
+

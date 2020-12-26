@@ -1,0 +1,28 @@
+# AWS IAM details
+aws_access_key: ""
+aws_secret_key: ""
+aws_region: "us-west-2"
+aws_profile: "aws"
+
+# Common vars
+env: test
+product: assignment
+Env: Test
+Product: Assignment
+
+# VPC details
+vpc_iprange: "10.0.0.0/27"
+subnet:
+  iprange: "10.0.0.0/28"
+  availability_zone: "a"
+
+# Security group details
+ip_whitelists_range:
+  - 117.94.108.120/32
+
+# EC2 instance details
+ami_id: #If not specified latest amazon linux 2 ami will be selected
+instance_type: "t2.micro"
+
+# Cloudformation stak details
+changeset: yes

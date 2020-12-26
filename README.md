@@ -1,2 +1,23 @@
 # aws-ansible
 Create aws infrastructure with ansible &amp; cloudformation
+
+## Prerequisites:
+
+Packages:
+ - ansible: 2.9.10
+ - aws-cli: 1.16.198
+
+collections:
+ - amazon.aws: install as following
+   ```ansible-galaxy collection install amazon.aws```
+
+authentication_details:
+ - *aws access key* & *aws secret key* with necesaary access to create resources
+
+## Usage
+
+Create aws resources. It will result in creation of cloudformation stack containing all the necessary resources.
+```ansible-playbook aws-infra.yml```
+
+Delete above created resources.
+```ansible-playbook aws-infra.yml --tags delete```
