@@ -123,4 +123,6 @@ Resources:
       - Key: Product
         Value: {{ product }}
 
-
+Outputs:
+  EC2InstancePublicIp:
+    Value: !GetAtt {{ Env }}{{ Product }}EC2Instance.PublicIp

@@ -17,7 +17,7 @@ subnet:
   availability_zone: "a"
 
 # Security group details
-ip_whitelists_range:
+ip_whitelists_range: #following ips will be whitelisted for ssh access
   - 117.94.108.120/32
 
 # EC2 instance details

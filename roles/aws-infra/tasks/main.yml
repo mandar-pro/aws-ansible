@@ -58,6 +58,12 @@
     aws_profile: "{{ aws_profile }}"
     disable_rollback: true
     template: "./roles/aws-infra/files/rendered_templates/aws-infra.yml"
+  register: stack_details
+
+- debug:
+    msg:
+      - "EC2 instance is deployed! Login to instance as below,"
+      - "ssh -i ./roles/aws-infra/files/keypairs/{{ keypair_details.key.name }}.pem ec2-user@{{ stack_details.stack_outputs.EC2InstancePublicIp }}"
 
 - name: delete aws-infra cloudformation stack
   amazon.aws.cloudformation:
