@@ -13,6 +13,7 @@ collections:
 
 authentication_details:
  - *aws access key* & *aws secret key* with necesaary access to create resources
+ - set the keys in *./roles/aws-infra/vars/main.yml* file
 
 ## Usage
 
