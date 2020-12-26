@@ -8,7 +8,7 @@ Packages:
  - aws-cli: 1.16.198
 
 collections:
- - amazon.aws: install as following
+ - amazon.aws: install with following command.<br>
    ```ansible-galaxy collection install amazon.aws```
 
 authentication_details:
@@ -16,8 +16,8 @@ authentication_details:
 
 ## Usage
 
-Create aws resources. It will result in creation of cloudformation stack containing all the necessary resources.
+Create aws resources. It will result in creation of cloudformation stack containing all the necessary resources.<br>
 ```ansible-playbook aws-infra.yml```
 
-Delete above created resources.
+Delete above created resources.<br>
 ```ansible-playbook aws-infra.yml --tags delete```
